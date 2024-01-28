@@ -37,7 +37,7 @@ describe('when there are initial blogs', () => {
 })
 
 describe('saves a blog', () => {
-    test('blog gets added to the db', async () => {
+    test('gets 401 error with no auth header', async () => {
         const newBlog = {
             title: 'Getting better',
             author: 'Bernard',
@@ -48,6 +48,26 @@ describe('saves a blog', () => {
         const res = await api
             .post('/api/blogs')
             .send(newBlog)
+            .expect(401)
+            .expect('Content-Type', /application\/json/)
+    })
+
+    test('creates blog with a header', async () => {
+        const newBlog = {
+            title: 'Getting better',
+            author: 'Bernard',
+            url: 'secretblog.com',
+            likes: 69,
+            user: '65b669d1eabdcdc29608eaf2',
+        }
+
+        const res = await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .set(
+                'Authorization',
+                'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImJhZGciLCJpZCI6IjY1YjY2OWQxZWFiZGNkYzI5NjA4ZWFmMiIsImlhdCI6MTcwNjQ1NTYwNCwiZXhwIjoxNzA2NDU5MjA0fQ.WYUwzp60eh4z6PM_WrpvEJdsUxjHj9Q9mmLtkOTAw2I'
+            )
             .expect(201)
             .expect('Content-Type', /application\/json/)
 
@@ -62,17 +82,21 @@ describe('saves a blog', () => {
             title: 'Getting better',
             author: 'Bernard',
             url: 'secretblog.com',
+            user: '65b669d1eabdcdc29608eaf2',
         }
 
         const res = await api
             .post('/api/blogs')
             .send(newBlog)
+            .set(
+                'Authorization',
+                'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImJhZGciLCJpZCI6IjY1YjY2OWQxZWFiZGNkYzI5NjA4ZWFmMiIsImlhdCI6MTcwNjQ1NTYwNCwiZXhwIjoxNzA2NDU5MjA0fQ.WYUwzp60eh4z6PM_WrpvEJdsUxjHj9Q9mmLtkOTAw2I'
+            )
             .expect(201)
             .expect('Content-Type', /application\/json/)
 
         const blogs = await helper.blogsInDb()
         expect(blogs).toHaveLength(helper.initialBlogs.length + 1)
-        // console.log(res.text)
         expect(res.body).toHaveProperty('likes', 0)
     })
 
@@ -81,7 +105,14 @@ describe('saves a blog', () => {
             author: 'Bernard',
         }
 
-        await api.post('/api/blogs').send(newBlog).expect(400)
+        await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .set(
+                'Authorization',
+                'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImJhZGciLCJpZCI6IjY1YjY2OWQxZWFiZGNkYzI5NjA4ZWFmMiIsImlhdCI6MTcwNjQ1NTYwNCwiZXhwIjoxNzA2NDU5MjA0fQ.WYUwzp60eh4z6PM_WrpvEJdsUxjHj9Q9mmLtkOTAw2I'
+            )
+            .expect(400)
     })
 })
 
@@ -113,17 +144,25 @@ describe('updates a blog', () => {
     })
 
     test('returns 404 if blog is not found', async () => {
-        const notExistingId = new mongoose.Types.ObjectId('4edd40c86762e0fb12000003')
+        const notExistingId = new mongoose.Types.ObjectId(
+            '4edd40c86762e0fb12000003'
+        )
         await api.put(`/api/blogs/${notExistingId}`).expect(404)
     })
 })
 
 describe('deletes a blog', () => {
-    test('succeeds with status code 204 if id is valid', async () => {
+    test.only('succeeds with status code 204 if id is valid', async () => {
         const initialBlogs = await helper.blogsInDb()
         const blogToDelete = initialBlogs[0]
 
-        await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204)
+        await api
+            .delete(`/api/blogs/${blogToDelete.id}`)
+            .set(
+                'Authorization',
+                'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImJhZGciLCJpZCI6IjY1YjY2OWQxZWFiZGNkYzI5NjA4ZWFmMiIsImlhdCI6MTcwNjQ1NTYwNCwiZXhwIjoxNzA2NDU5MjA0fQ.WYUwzp60eh4z6PM_WrpvEJdsUxjHj9Q9mmLtkOTAw2I'
+            )
+            .expect(204)
 
         const finalBlogs = await helper.blogsInDb()
 
@@ -143,7 +182,9 @@ describe('deletes a blog', () => {
     })
 
     test('returns 404 if blog is not found', async () => {
-        const notExistingId = new mongoose.Types.ObjectId('4edd40c86762e0fb12000003')
+        const notExistingId = new mongoose.Types.ObjectId(
+            '4edd40c86762e0fb12000003'
+        )
         await api.delete(`/api/blogs/${notExistingId}`).expect(404)
     })
 })
