@@ -1,8 +1,13 @@
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
+const User = require('../models/user')
 
 blogsRouter.get('/', async (request, response) => {
-    const blogs = await Blog.find({})
+    const blogs = await Blog.find({}).populate('user', {
+        name: 1,
+        username: 1,
+        id: 1,
+    })
     response.json(blogs)
 })
 
@@ -13,14 +18,20 @@ blogsRouter.post('/', async (request, response) => {
         response.status(400).json({ error: 'Incomplete fields' })
     }
 
+    const user = await User.findById(body.userId)
+    console.log(user)
+
     const blog = new Blog({
         title: body.title,
         author: body.author,
         url: body.url,
         likes: body.likes ?? 0,
+        user: user.id,
     })
 
     const newBlog = await blog.save()
+    user.blogs = user.blogs.concat(blog._id)
+    await user.save()
 
     response.status(201).json(newBlog)
 })
