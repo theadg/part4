@@ -1,6 +1,5 @@
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
-const User = require('../models/user')
 
 blogsRouter.get('/', async (request, response) => {
     const blogs = await Blog.find({}).populate('user', {
@@ -18,8 +17,7 @@ blogsRouter.post('/', async (request, response) => {
         response.status(400).json({ error: 'Incomplete fields' })
     }
 
-    const user = await User.findById(body.userId)
-    console.log(user)
+    const user = request.user
 
     const blog = new Blog({
         title: body.title,
@@ -71,14 +69,22 @@ blogsRouter.put('/:id', async (request, response) => {
 
 blogsRouter.delete('/:id', async (request, response) => {
     const { id } = request.params
-    // const blogToDelete = await Blog.findById
-    const deletedBlog = await Blog.findByIdAndDelete(id)
 
-    if (deletedBlog) {
-        response.status(204).end()
-    } else {
-        response.status(404).end()
+    const blog = await Blog.findById(id)
+    const user = request.user
+
+    if (blog?.user.toString() === user._id.toString()) {
+        // Remove blog from array
+        user.blogs.pull(blog._id)
+
+        await user.save()
+
+        await blog.deleteOne()
+
+        return response.status(204).end()
     }
+
+    response.status(404).end()
 })
 
 module.exports = blogsRouter
